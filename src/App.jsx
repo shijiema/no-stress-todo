@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  Menu, 
-  ChevronLeft, 
-  Plus, 
-  Calendar as CalendarIcon, 
-  Home, 
-  X, 
-  CheckCircle2, 
-  Clock, 
+import {
+  Menu,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Calendar as CalendarIcon,
+  Home,
+  X,
+  CheckCircle2,
+  Clock,
   ArrowRight,
   MoreVertical,
   Edit2,
@@ -79,7 +80,9 @@ const App = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [activeTaskMenu, setActiveTaskMenu] = useState(null); 
   const [editingTask, setEditingTask] = useState(null); 
-  const [calendarFilter, setCalendarFilter] = useState('all');
+  const [calendarFilters, setCalendarFilters] = useState(new Set(['created', 'in execution', 'completed', 'abandoned']));
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
 
   // --- Actions ---
   
@@ -441,68 +444,145 @@ const App = () => {
 
   const CalendarScreen = () => {
     const now = new Date();
-    const filteredTasks = tasks.filter(t => calendarFilter === 'all' || t.status === calendarFilter);
-    
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+
+    // Month navigation
+    const goToPrevMonth = () => {
+      if (calendarMonth === 0) { setCalendarMonth(11); setCalendarYear(calendarYear - 1); }
+      else setCalendarMonth(calendarMonth - 1);
+    };
+    const goToNextMonth = () => {
+      if (calendarMonth === 11) { setCalendarMonth(0); setCalendarYear(calendarYear + 1); }
+      else setCalendarMonth(calendarMonth + 1);
+    };
+
+    // Toggle a filter checkbox
+    const toggleFilter = (status) => {
+      setCalendarFilters(prev => {
+        const next = new Set(prev);
+        if (next.has(status)) next.delete(status);
+        else next.add(status);
+        return next;
+      });
+    };
+
+    // Calendar grid calculations
+    const firstDayOfMonth = new Date(calendarYear, calendarMonth, 1).getDay(); // 0=Sun
+    const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+
+    // Status color mapping
+    const statusDotColor = (status) => {
+      if (status === 'created' || status === 'start delayed') return 'bg-indigo-400';
+      if (status === 'in execution') return 'bg-green-500';
+      if (status === 'completed') return 'bg-gray-400';
+      if (status === 'abandoned') return 'bg-red-400';
+      return 'bg-gray-300';
+    };
+
+    // Get filtered tasks that have dots on a given day
+    const getTasksForDay = (day) => {
+      return tasks.filter(t => {
+        const d = new Date(t.start);
+        return d.getDate() === day && d.getMonth() === calendarMonth && d.getFullYear() === calendarYear
+          && calendarFilters.has(t.status === 'start delayed' ? 'created' : t.status);
+      });
+    };
+
+    const filterOptions = [
+      { key: 'created', label: 'Created', color: 'bg-indigo-400' },
+      { key: 'in execution', label: 'In Execution', color: 'bg-green-500' },
+      { key: 'completed', label: 'Completed', color: 'bg-gray-400' },
+      { key: 'abandoned', label: 'Abandoned', color: 'bg-red-400' },
+    ];
+
+    const isToday = (day) =>
+      day === now.getDate() && calendarMonth === now.getMonth() && calendarYear === now.getFullYear();
+
     return (
-      <div className="h-full bg-white p-6 overflow-y-auto pb-24" onClick={() => setActiveTaskMenu(null)}>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Schedule</h2>
-          <select className="text-xs border rounded p-1" value={calendarFilter} onChange={e => setCalendarFilter(e.target.value)}>
-            <option value="all">All</option>
-            <option value="in execution">In Execution</option>
-            <option value="completed">Completed</option>
-            <option value="abandoned">Abandoned</option>
-          </select>
+      <div className="h-full bg-white overflow-y-auto pb-24">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-4 py-4">
+          <button onClick={() => setCurrentScreen('home')}>
+            <ChevronLeft size={22} className="text-gray-700" />
+          </button>
+          <h2 className="text-lg font-bold">Calendar View</h2>
         </div>
 
-        {/* Grid Calendar - Figma Style */}
-        <div className="grid grid-cols-7 gap-2 mb-8">
-          {['S','M','T','W','T','F','S'].map((day, i) => (
-            <div key={i} className="text-[10px] text-center font-bold text-gray-400">{day}</div>
-          ))}
-          {[...Array(31)].map((_, i) => {
-            const day = i + 1;
-            const isToday = day === now.getDate();
-            const hasTask = tasks.some(t => new Date(t.start).getDate() === day);
-            return (
-              <div key={i} className={`aspect-square border rounded-lg flex flex-col items-center justify-center text-[11px] relative
-                ${isToday ? 'bg-indigo-50 border-indigo-500 font-bold text-indigo-700 shadow-sm' : 'border-gray-100 text-gray-600'}
-              `}>
-                {day}
-                {hasTask && <div className="absolute bottom-1 w-1 h-1 bg-indigo-400 rounded-full" />}
-              </div>
-            );
-          })}
+        {/* Month Navigation */}
+        <div className="flex items-center justify-between px-6 mb-3">
+          <button onClick={goToPrevMonth} className="p-1 hover:bg-gray-100 rounded">
+            <ChevronLeft size={18} className="text-gray-500" />
+          </button>
+          <span className="text-sm font-semibold text-gray-700">
+            {monthNames[calendarMonth]} {calendarYear}
+          </span>
+          <button onClick={goToNextMonth} className="p-1 hover:bg-gray-100 rounded">
+            <ChevronRight size={18} className="text-gray-500" />
+          </button>
         </div>
 
-        <div className="space-y-3">
-          {filteredTasks.map(t => (
-            <div key={t.id} className="p-4 border rounded-xl flex items-center gap-4 group relative">
-              <div className={`w-3 h-3 rounded-full flex-shrink-0 
-                ${t.status === 'in execution' ? 'bg-green-500 animate-pulse' : 
-                  t.status === 'completed' ? 'bg-blue-400' : 'bg-gray-300'}`} />
-              
-              <div className="flex-1">
-                <p className={`text-sm font-semibold ${t.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-                  {t.description}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] text-gray-400 font-mono">
-                    {new Date(t.start).toLocaleDateString([], { month: 'short', day: 'numeric' })} at {new Date(t.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        {/* Filter by Status - Checkboxes */}
+        <div className="px-4 mb-4">
+          <p className="text-xs text-gray-500 mb-1.5">Filter by Status:</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {filterOptions.map(opt => (
+              <label key={opt.key} className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={calendarFilters.has(opt.key)}
+                  onChange={() => toggleFilter(opt.key)}
+                  className="w-3.5 h-3.5 rounded accent-indigo-500"
+                />
+                <span className={`w-2.5 h-2.5 rounded-full ${opt.color}`} />
+                <span className="text-xs text-gray-700">{opt.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="px-2">
+          {/* Day headers */}
+          <div className="grid grid-cols-7">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+              <div key={d} className="text-center text-xs font-medium text-gray-400 py-2">{d}</div>
+            ))}
+          </div>
+
+          {/* Day cells */}
+          <div className="grid grid-cols-7">
+            {/* Empty cells for offset */}
+            {[...Array(firstDayOfMonth)].map((_, i) => (
+              <div key={`empty-${i}`} className="min-h-[72px]" />
+            ))}
+
+            {[...Array(daysInMonth)].map((_, i) => {
+              const day = i + 1;
+              const dayTasks = getTasksForDay(day);
+              const today = isToday(day);
+              return (
+                <div
+                  key={day}
+                  className={`min-h-[72px] border border-gray-100 rounded-lg m-0.5 p-1.5 flex flex-col
+                    ${today ? 'bg-blue-50 border-blue-300' : ''}
+                  `}
+                >
+                  <span className={`text-xs ${today ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>
+                    {day}
                   </span>
+                  {/* Task dots */}
+                  {dayTasks.length > 0 && (
+                    <div className="flex flex-wrap gap-0.5 mt-1">
+                      {dayTasks.slice(0, 4).map(t => (
+                        <div key={t.id} className={`w-2 h-2 rounded-full ${statusDotColor(t.status)}`} />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-
-              <button 
-                onClick={(e) => { e.stopPropagation(); setActiveTaskMenu(activeTaskMenu === t.id ? null : t.id); }}
-                className="p-2 text-gray-400 hover:text-black"
-              >
-                <MoreVertical size={16} />
-              </button>
-              <TaskContextMenu task={t} />
-            </div>
-          ))}
-          {filteredTasks.length === 0 && <p className="text-center text-gray-400 py-10 text-sm">No tasks found in this view</p>}
+              );
+            })}
+          </div>
         </div>
       </div>
     );
