@@ -19,8 +19,8 @@ const translations = {
     urgent: 'URGENT',
     regular: 'REGULAR',
     startDelayed: 'Start Delayed',
-    startNextDay: 'Start Next Day · {date}',
-    startInTwoDays: 'Start In Two Days · {date}',
+    startInOneDay: 'Start In One Day',
+    startAfterADay: 'Start After A Day',
     noTasks: 'No tasks',
 
     // Task context menu
@@ -84,8 +84,8 @@ const translations = {
     urgent: '紧急',
     regular: '常规',
     startDelayed: '延迟开始',
-    startNextDay: '明日开始 · {date}',
-    startInTwoDays: '后天开始 · {date}',
+    startInOneDay: '一天内开始',
+    startAfterADay: '一天后开始',
     noTasks: '暂无任务',
 
     // Task context menu

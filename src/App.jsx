@@ -157,8 +157,6 @@ const App = () => {
   // --- Sorting & Weighted Logic ---
   const getTasksByStatus = (statusGroup) => {
     const now = new Date();
-    const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
-    const dayAfter = new Date(now); dayAfter.setDate(now.getDate() + 2);
 
     let filtered = tasks.filter(task => {
       // Exclude finished tasks from Home screen
@@ -168,13 +166,15 @@ const App = () => {
       if (statusGroup === 'start delayed') {
         return new Date(task.start) < now && task.status !== 'in execution';
       }
-      if (statusGroup === 'start next day') {
+      if (statusGroup === 'start in one day') {
         const d = new Date(task.start);
-        return d.getDate() === tomorrow.getDate() && d.getMonth() === tomorrow.getMonth();
+        const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        return d >= now && d <= in24h && task.status !== 'in execution';
       }
-      if (statusGroup === 'start in two days') {
+      if (statusGroup === 'start after a day') {
         const d = new Date(task.start);
-        return d.getDate() === dayAfter.getDate() && d.getMonth() === dayAfter.getMonth();
+        const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        return d > in24h && task.status !== 'in execution';
       }
       return false;
     });
@@ -399,11 +399,8 @@ const App = () => {
     const now = new Date();
     const inExecution = getTasksByStatus('in execution');
     const delayed = getTasksByStatus('start delayed');
-    const nextDay = getTasksByStatus('start next day');
-    const inTwoDays = getTasksByStatus('start in two days');
-
-    const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
-    const dayAfter = new Date(now); dayAfter.setDate(now.getDate() + 2);
+    const inOneDay = getTasksByStatus('start in one day');
+    const afterADay = getTasksByStatus('start after a day');
 
     return (
       <div className="flex flex-col h-full bg-gray-50 overflow-y-auto pb-24" onClick={() => { setActiveTaskMenu(null); setSelectedTask(null); }}>
@@ -455,8 +452,8 @@ const App = () => {
           </div>
 
           <Section label={t('startDelayed')} tasks={delayed} color="text-rose-500" bgColor="bg-rose-50" />
-          <Section label={t('startNextDay', { date: shortDate(tomorrow) })} tasks={nextDay} color="text-blue-500" bgColor="bg-blue-50" />
-          <Section label={t('startInTwoDays', { date: shortDate(dayAfter) })} tasks={inTwoDays} color="text-purple-500" bgColor="bg-purple-50" />
+          <Section label={t('startInOneDay')} tasks={inOneDay} color="text-blue-500" bgColor="bg-blue-50" />
+          <Section label={t('startAfterADay')} tasks={afterADay} color="text-purple-500" bgColor="bg-purple-50" />
         </div>
       </div>
     );
