@@ -257,11 +257,8 @@ const App = () => {
 
   const Header = () => (
     <div className="bg-white border-b sticky top-0 z-10 p-4">
-      <div className="flex items-center justify-between h-12 relative">
-        <button onClick={() => setShowMenu(true)} className="p-2 hover:bg-gray-100 rounded-full flex-shrink-0">
-          <Menu size={28} />
-        </button>
-        <div className="flex-1 ml-4 h-12 relative flex items-center">
+      <div className="flex items-center h-12 relative">
+        <div className="flex-1 h-12 relative flex items-center">
           {/* Arrow shaft */}
           <div className="absolute left-0 top-1/2 -translate-y-1/2 bg-indigo-100 rounded-l-md flex items-center px-4"
                style={{ width: 'calc(100% - 20px)', height: '60%' }}>
@@ -827,11 +824,18 @@ const App = () => {
           <Plus size={24} strokeWidth={2.5} />
         </button>
         {/* Nav Items */}
-        <div className="flex justify-between items-center h-full px-12">
-          <button onClick={() => { setEditingTask(null); setCurrentScreen('home'); }} className={`flex flex-col items-center gap-1 ${currentScreen === 'home' ? 'text-black' : 'text-gray-400'}`}>
-            <Home size={22} />
-            <span className="text-[9px] font-black uppercase">{t('home')}</span>
-          </button>
+        <div className="flex items-center h-full px-8">
+          <div className="flex gap-8">
+            <button onClick={() => setShowMenu(true)} className="flex flex-col items-center gap-1 text-gray-400">
+              <Menu size={22} />
+              <span className="text-[9px] font-black uppercase">{t('menu')}</span>
+            </button>
+            <button onClick={() => { setEditingTask(null); setCurrentScreen('home'); }} className={`flex flex-col items-center gap-1 ${currentScreen === 'home' ? 'text-black' : 'text-gray-400'}`}>
+              <Home size={22} />
+              <span className="text-[9px] font-black uppercase">{t('home')}</span>
+            </button>
+          </div>
+          <div className="flex-1" />
           <button onClick={() => { setEditingTask(null); setCurrentScreen('calendar'); }} className={`flex flex-col items-center gap-1 ${currentScreen === 'calendar' ? 'text-black' : 'text-gray-400'}`}>
             <CalendarIcon size={22} />
             <span className="text-[9px] font-black uppercase">{t('schedule')}</span>

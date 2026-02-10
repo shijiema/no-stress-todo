@@ -12,8 +12,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
       },
       manifest: {
-        name: 'No Stress Todo',
-        short_name: 'NoStress',
+        name: 'StickierTodo',
+        short_name: 'StickierTodo',
         description: 'A no-stress task management app',
         start_url: '.',
         display: 'standalone',
