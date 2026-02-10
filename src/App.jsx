@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { loadTasks, saveTasks } from './db';
+import { useI18n } from './i18n.js';
 import {
   Menu,
   ChevronLeft,
@@ -20,18 +21,9 @@ import {
   Upload,
   Download,
   Archive,
-  Play
+  Play,
+  Globe
 } from 'lucide-react';
-
-// Utility for formatting dates
-const formatDate = (date) => {
-  return new Intl.DateTimeFormat('en-US', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  }).format(date);
-};
 
 // Helper to format Date objects for datetime-local inputs
 const toDatetimeLocal = (date) => {
@@ -43,6 +35,28 @@ const toDatetimeLocal = (date) => {
 };
 
 const App = () => {
+  const { t, locale, setLocale, dateLocale } = useI18n();
+
+  // Locale-aware date formatting
+  const formatDate = (date) => {
+    return new Intl.DateTimeFormat(dateLocale, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(date);
+  };
+
+  const shortDate = (d) => d.toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' });
+
+  const monthNames = [
+    t('january'), t('february'), t('march'), t('april'),
+    t('may'), t('june'), t('july'), t('august'),
+    t('september'), t('october'), t('november'), t('december')
+  ];
+
+  const dayNames = [t('sun'), t('mon'), t('tue'), t('wed'), t('thu'), t('fri'), t('sat')];
+
   // --- State ---
   const [tasks, setTasks] = useState([]);
   const [dbReady, setDbReady] = useState(false);
@@ -76,7 +90,7 @@ const App = () => {
   const [currentScreen, setCurrentScreen] = useState('home');
   const [showMenu, setShowMenu] = useState(false);
   const [activeTaskMenu, setActiveTaskMenu] = useState(null); // { id, x, y } or null
-  const [editingTask, setEditingTask] = useState(null); 
+  const [editingTask, setEditingTask] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
   const [calendarFilters, setCalendarFilters] = useState(new Set(['created', 'in execution', 'completed', 'abandoned']));
   const [showBackupSub, setShowBackupSub] = useState(false);
@@ -99,7 +113,7 @@ const App = () => {
   };
 
   // --- Actions ---
-  
+
   const updateTaskStatus = (id, newStatus) => {
     setTasks(prev => prev.map(t => {
       if (t.id !== id) return t;
@@ -137,7 +151,7 @@ const App = () => {
     let filtered = tasks.filter(task => {
       // Exclude finished tasks from Home screen
       if (task.status === 'completed' || task.status === 'abandoned') return false;
-      
+
       if (statusGroup === 'in execution') return task.status === 'in execution';
       if (statusGroup === 'start delayed') {
         return new Date(task.start) < now && task.status !== 'in execution';
@@ -165,7 +179,7 @@ const App = () => {
           weight = 50 + daysPassed;
         }
         return { ...task, calculatedWeight: weight };
-      }).sort((a, b) => a.calculatedWeight - b.calculatedWeight); 
+      }).sort((a, b) => a.calculatedWeight - b.calculatedWeight);
     }
 
     return filtered.sort((a, b) => new Date(a.start) - new Date(b.start));
@@ -207,33 +221,33 @@ const App = () => {
             onClick={() => handleEditClick(task)}
             className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-gray-700"
           >
-            <Edit2 size={12} /> Edit
+            <Edit2 size={12} /> {t('edit')}
           </button>
           {task.status !== 'in execution' && task.status !== 'completed' && task.status !== 'abandoned' && (
             <button
               onClick={() => updateTaskStatus(task.id, 'in execution')}
               className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-blue-600"
             >
-              <Play size={12} /> Start
+              <Play size={12} /> {t('start')}
             </button>
           )}
           <button
             onClick={() => updateTaskStatus(task.id, 'completed')}
             className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-green-600"
           >
-            <CheckCircle size={12} /> Finish
+            <CheckCircle size={12} /> {t('finish')}
           </button>
           <button
             onClick={() => updateTaskStatus(task.id, 'abandoned')}
             className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-red-600"
           >
-            <Trash2 size={12} /> Abandon
+            <Trash2 size={12} /> {t('abandon')}
           </button>
           <button
             onClick={() => { setTasks(prev => prev.filter(t => t.id !== task.id)); setActiveTaskMenu(null); }}
             className="w-full flex items-center gap-2 px-3 py-2 hover:bg-red-50 text-red-700 border-t"
           >
-            <X size={12} /> Delete
+            <X size={12} /> {t('delete')}
           </button>
         </div>
       </div>,
@@ -252,7 +266,7 @@ const App = () => {
           <div className="absolute left-0 top-1/2 -translate-y-1/2 bg-indigo-100 rounded-l-md flex items-center px-4"
                style={{ width: 'calc(100% - 20px)', height: '60%' }}>
             <span className="text-indigo-800 font-black italic tracking-widest text-sm uppercase">
-              Get organized, Get it Done!
+              {t('motto')}
             </span>
           </div>
           {/* Arrow head */}
@@ -305,7 +319,7 @@ const App = () => {
           setShowMenu(false);
           setShowBackupSub(false);
         } catch {
-          alert('Invalid backup file. Please select a valid JSON backup.');
+          alert(t('invalidBackup'));
         }
       };
       reader.readAsText(file);
@@ -319,16 +333,26 @@ const App = () => {
       <div className={`absolute right-0 top-0 h-full w-64 bg-white shadow-xl transform transition-transform ${showMenu ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-6">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-xl font-bold">Menu</h2>
+            <h2 className="text-xl font-bold">{t('menu')}</h2>
             <X onClick={() => { setShowMenu(false); setShowBackupSub(false); }} className="cursor-pointer" />
           </div>
           <nav className="space-y-1">
+            {/* Language switcher */}
+            <button
+              className="flex items-center justify-between w-full p-3 hover:bg-gray-50 rounded-lg text-left"
+              onClick={() => setLocale(locale === 'en' ? 'zh' : 'en')}
+            >
+              <span className="flex items-center gap-3">
+                <Globe size={20} className="text-blue-500" /> {t('language')}
+              </span>
+              <span className="text-sm text-gray-500">{locale === 'en' ? '中文' : 'English'}</span>
+            </button>
             <button
               className="flex items-center justify-between w-full p-3 hover:bg-gray-50 rounded-lg text-left"
               onClick={() => setShowBackupSub(!showBackupSub)}
             >
               <span className="flex items-center gap-3">
-                <Archive size={20} className="text-indigo-500" /> Backup
+                <Archive size={20} className="text-indigo-500" /> {t('backup')}
               </span>
               <ChevronDown size={16} className={`text-gray-400 transition-transform ${showBackupSub ? 'rotate-180' : ''}`} />
             </button>
@@ -338,13 +362,13 @@ const App = () => {
                   className="flex items-center gap-3 w-full p-2.5 hover:bg-gray-50 rounded-lg text-left text-sm text-gray-700"
                   onClick={handleExportJson}
                 >
-                  <Download size={16} className="text-purple-500" /> Export as JSON
+                  <Download size={16} className="text-purple-500" /> {t('exportJson')}
                 </button>
                 <button
                   className="flex items-center gap-3 w-full p-2.5 hover:bg-gray-50 rounded-lg text-left text-sm text-gray-700"
                   onClick={handleImportJson}
                 >
-                  <Upload size={16} className="text-blue-500" /> Import JSON Backup
+                  <Upload size={16} className="text-blue-500" /> {t('importJson')}
                 </button>
               </div>
             )}
@@ -353,7 +377,7 @@ const App = () => {
                 className="flex items-center gap-3 w-full p-3 hover:bg-gray-50 rounded-lg text-left text-red-500"
                 onClick={() => { setTasks(prev => prev.filter(t => t.tag !== EXAMPLE_TAG)); setShowMenu(false); setShowBackupSub(false); }}
               >
-                <Trash2 size={20} /> Remove Example Tasks
+                <Trash2 size={20} /> {t('removeExamples')}
               </button>
             )}
           </nav>
@@ -371,7 +395,6 @@ const App = () => {
 
     const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
     const dayAfter = new Date(now); dayAfter.setDate(now.getDate() + 2);
-    const shortDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
     return (
       <div className="flex flex-col h-full bg-gray-50 overflow-y-auto pb-24" onClick={() => { setActiveTaskMenu(null); setSelectedTask(null); }}>
@@ -383,11 +406,11 @@ const App = () => {
           <div className="bg-white rounded-2xl shadow-sm border p-4 relative">
             <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              In Execution
+              {t('inExecution')}
             </h3>
             <div className="flex items-center gap-3 overflow-x-auto pb-3 thin-scrollbar" style={{ direction: 'rtl' }}>
               {inExecution.length === 0 ? (
-                <p className="text-gray-400 text-sm italic py-8 text-center w-full">No active tasks</p>
+                <p className="text-gray-400 text-sm italic py-8 text-center w-full">{t('noActiveTasks')}</p>
               ) : (
                 inExecution.map(task => {
                   const isUrgent = task.priority === 0;
@@ -408,11 +431,11 @@ const App = () => {
                       <p className="text-xs font-semibold line-clamp-3 h-12 leading-snug pr-4 text-gray-800">{task.description}</p>
                       <div className="mt-2 flex items-end justify-between">
                         <div className="text-[9px] text-gray-400 font-mono leading-tight">
-                          <div>{new Date(task.start).toLocaleDateString([], { month: 'short', day: 'numeric' })}</div>
-                          <div>{new Date(task.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
+                          <div>{new Date(task.start).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })}</div>
+                          <div>{new Date(task.start).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
                         </div>
                         <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${isUrgent ? 'bg-rose-200/60 text-rose-600' : 'bg-white/50 text-gray-500'}`}>
-                          {isUrgent ? 'URGENT' : 'REGULAR'}
+                          {isUrgent ? t('urgent') : t('regular')}
                         </span>
                       </div>
                     </div>
@@ -422,9 +445,9 @@ const App = () => {
             </div>
           </div>
 
-          <Section label="Start Delayed" tasks={delayed} color="text-rose-500" bgColor="bg-rose-50" />
-          <Section label={`Start Next Day · ${shortDate(tomorrow)}`} tasks={nextDay} color="text-blue-500" bgColor="bg-blue-50" />
-          <Section label={`Start In Two Days · ${shortDate(dayAfter)}`} tasks={inTwoDays} color="text-purple-500" bgColor="bg-purple-50" />
+          <Section label={t('startDelayed')} tasks={delayed} color="text-rose-500" bgColor="bg-rose-50" />
+          <Section label={t('startNextDay', { date: shortDate(tomorrow) })} tasks={nextDay} color="text-blue-500" bgColor="bg-blue-50" />
+          <Section label={t('startInTwoDays', { date: shortDate(dayAfter) })} tasks={inTwoDays} color="text-purple-500" bgColor="bg-purple-50" />
         </div>
       </div>
     );
@@ -435,30 +458,30 @@ const App = () => {
       <h3 className={`text-xs font-bold uppercase mb-3 tracking-wide ${color}`}>{label}</h3>
       <div className="flex gap-3 overflow-x-auto thin-scrollbar pb-2 min-h-[40px]" style={{ direction: 'rtl' }}>
         {tasks.length === 0 ? (
-          <p className="text-gray-400 text-[10px] italic">No tasks</p>
+          <p className="text-gray-400 text-[10px] italic">{t('noTasks')}</p>
         ) : (
-          tasks.map(t => (
+          tasks.map(tk => (
             <div
-              key={t.id}
-              onClick={(e) => { e.stopPropagation(); setSelectedTask(selectedTask === t.id ? null : t.id); }}
-              style={{ direction: 'ltr', transform: `rotate(${postItRotation(t.id)}deg)` }}
-              className={`flex-shrink-0 min-w-[140px] max-w-[180px] p-3 rounded-sm border-l-4 shadow-md relative cursor-pointer transition-all ${postItColors(t.status)} ${selectedTask === t.id ? 'ring-2 ring-indigo-400 ring-offset-1 scale-105' : ''}`}
+              key={tk.id}
+              onClick={(e) => { e.stopPropagation(); setSelectedTask(selectedTask === tk.id ? null : tk.id); }}
+              style={{ direction: 'ltr', transform: `rotate(${postItRotation(tk.id)}deg)` }}
+              className={`flex-shrink-0 min-w-[140px] max-w-[180px] p-3 rounded-sm border-l-4 shadow-md relative cursor-pointer transition-all ${postItColors(tk.status)} ${selectedTask === tk.id ? 'ring-2 ring-indigo-400 ring-offset-1 scale-105' : ''}`}
             >
               <button
-                onClick={(e) => openTaskMenu(e, t.id)}
+                onClick={(e) => openTaskMenu(e, tk.id)}
                 className="absolute top-1 right-1 p-1 text-gray-400 hover:text-gray-700"
               >
                 <MoreVertical size={14} />
               </button>
 
-              <p className="text-xs font-semibold line-clamp-2 leading-snug pr-4 text-gray-800">{t.description}</p>
+              <p className="text-xs font-semibold line-clamp-2 leading-snug pr-4 text-gray-800">{tk.description}</p>
               <div className="flex justify-between items-end mt-2">
                 <div className="text-[9px] text-gray-400 font-mono leading-tight">
-                  <div>{new Date(t.start).toLocaleDateString([], { month: 'short', day: 'numeric' })}</div>
-                  <div>{new Date(t.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
+                  <div>{new Date(tk.start).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })}</div>
+                  <div>{new Date(tk.start).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
                 </div>
-                <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${t.priority === 0 ? 'bg-rose-200/60 text-rose-600' : 'bg-white/50 text-gray-500'}`}>
-                  {t.priority === 0 ? 'URGENT' : 'REGULAR'}
+                <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${tk.priority === 0 ? 'bg-rose-200/60 text-rose-600' : 'bg-white/50 text-gray-500'}`}>
+                  {tk.priority === 0 ? t('urgent') : t('regular')}
                 </span>
               </div>
             </div>
@@ -493,17 +516,17 @@ const App = () => {
           <button onClick={() => { setEditingTask(null); setCurrentScreen('home'); }}>
             <ChevronLeft size={24} className="text-gray-500" />
           </button>
-          <h2 className="text-xl font-bold">{editingTask ? 'Edit Task' : 'New Task'}</h2>
+          <h2 className="text-xl font-bold">{editingTask ? t('editTask') : t('newTask')}</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-3">Description</label>
+            <label className="block text-sm font-medium text-gray-900 mb-3">{t('description')}</label>
             <textarea
               required
               maxLength={500}
-              placeholder="Enter task description..."
+              placeholder={t('descPlaceholder')}
               className="w-full border border-gray-200 rounded-2xl p-4 h-28 outline-none focus:border-gray-400 resize-none text-gray-800"
               value={formData.description}
               onChange={e => setFormData({...formData, description: e.target.value})}
@@ -513,7 +536,7 @@ const App = () => {
           {/* Date/Time inputs */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-400 mb-2">Start</label>
+              <label className="block text-xs text-gray-400 mb-2">{t('startLabel')}</label>
               <input
                 required
                 type="datetime-local"
@@ -523,7 +546,7 @@ const App = () => {
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-400 mb-2">Expected End</label>
+              <label className="block text-xs text-gray-400 mb-2">{t('expectedEnd')}</label>
               <input
                 type="datetime-local"
                 className="w-full border border-gray-200 rounded-2xl p-3 text-sm outline-none focus:border-gray-400"
@@ -544,7 +567,7 @@ const App = () => {
                   : 'bg-gray-100 text-gray-500'
               }`}
             >
-              Urgent
+              {t('urgent')}
             </button>
             <button
               type="button"
@@ -555,23 +578,23 @@ const App = () => {
                   : 'bg-gray-100 text-gray-500'
               }`}
             >
-              Regular
+              {t('regular')}
             </button>
           </div>
 
           {/* Status (only when editing) */}
           {editingTask && (
             <div>
-              <label className="block text-xs text-gray-400 uppercase mb-2">Status</label>
+              <label className="block text-xs text-gray-400 uppercase mb-2">{t('statusLabel')}</label>
               <select
                 className="w-full border border-gray-200 rounded-2xl p-3.5 text-sm outline-none focus:border-gray-400 bg-white"
                 value={formData.status}
                 onChange={e => setFormData({...formData, status: e.target.value})}
               >
-                <option value="created">Created</option>
-                <option value="in execution">In Execution</option>
-                <option value="completed">Completed</option>
-                <option value="abandoned">Abandoned</option>
+                <option value="created">{t('created')}</option>
+                <option value="in execution">{t('inExecution')}</option>
+                <option value="completed">{t('completed')}</option>
+                <option value="abandoned">{t('abandoned')}</option>
               </select>
             </div>
           )}
@@ -581,7 +604,7 @@ const App = () => {
             type="submit"
             className="w-full bg-gray-900 text-white py-4 rounded-full font-medium text-base"
           >
-            {editingTask ? 'Save Changes' : 'Create Task'}
+            {editingTask ? t('saveChanges') : t('createTask')}
           </button>
         </form>
       </div>
@@ -590,8 +613,6 @@ const App = () => {
 
   const CalendarScreen = () => {
     const now = new Date();
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'];
 
     // Month navigation
     const goToPrevMonth = () => {
@@ -636,18 +657,18 @@ const App = () => {
 
     // Get filtered tasks that have dots on a given day
     const getTasksForDay = (day) => {
-      return tasks.filter(t => {
-        const d = new Date(t.start);
+      return tasks.filter(tk => {
+        const d = new Date(tk.start);
         return d.getDate() === day && d.getMonth() === calendarMonth && d.getFullYear() === calendarYear
-          && calendarFilters.has(t.status === 'start delayed' ? 'created' : t.status);
+          && calendarFilters.has(tk.status === 'start delayed' ? 'created' : tk.status);
       });
     };
 
     const filterOptions = [
-      { key: 'created', label: 'Created', color: 'bg-indigo-400' },
-      { key: 'in execution', label: 'In Execution', color: 'bg-green-500' },
-      { key: 'completed', label: 'Completed', color: 'bg-gray-400' },
-      { key: 'abandoned', label: 'Abandoned', color: 'bg-red-400' },
+      { key: 'created', label: t('created'), color: 'bg-indigo-400' },
+      { key: 'in execution', label: t('inExecution'), color: 'bg-green-500' },
+      { key: 'completed', label: t('completed'), color: 'bg-gray-400' },
+      { key: 'abandoned', label: t('abandoned'), color: 'bg-red-400' },
     ];
 
     const isToday = (day) =>
@@ -660,7 +681,7 @@ const App = () => {
           <button onClick={() => setCurrentScreen('home')}>
             <ChevronLeft size={22} className="text-gray-700" />
           </button>
-          <h2 className="text-lg font-bold">Calendar View</h2>
+          <h2 className="text-lg font-bold">{t('calendarView')}</h2>
         </div>
 
         {/* Month Navigation */}
@@ -678,7 +699,7 @@ const App = () => {
 
         {/* Filter by Status - Checkboxes */}
         <div className="px-4 mb-4">
-          <p className="text-xs text-gray-500 mb-1.5">Filter by Status:</p>
+          <p className="text-xs text-gray-500 mb-1.5">{t('filterByStatus')}</p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {filterOptions.map(opt => (
               <label key={opt.key} className="flex items-center gap-1.5 cursor-pointer select-none">
@@ -699,7 +720,7 @@ const App = () => {
         <div className="px-2">
           {/* Day headers */}
           <div className="grid grid-cols-7">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+            {dayNames.map(d => (
               <div key={d} className="text-center text-xs font-medium text-gray-400 py-2">{d}</div>
             ))}
           </div>
@@ -728,8 +749,8 @@ const App = () => {
                   {/* Task dots */}
                   {dayTasks.length > 0 && (
                     <div className="flex flex-wrap gap-0.5 mt-1">
-                      {dayTasks.slice(0, 4).map(t => (
-                        <div key={t.id} className={`w-2 h-2 rounded-full ${statusDotColor(t.status)}`} />
+                      {dayTasks.slice(0, 4).map(tk => (
+                        <div key={tk.id} className={`w-2 h-2 rounded-full ${statusDotColor(tk.status)}`} />
                       ))}
                     </div>
                   )}
@@ -742,44 +763,44 @@ const App = () => {
         {/* Task List - Post-it Notes */}
         <div className="px-4 mt-4 grid grid-cols-2 gap-3">
           {tasks
-            .filter(t => calendarFilters.has(t.status === 'start delayed' ? 'created' : t.status))
-            .filter(t => {
-              const d = new Date(t.start);
+            .filter(tk => calendarFilters.has(tk.status === 'start delayed' ? 'created' : tk.status))
+            .filter(tk => {
+              const d = new Date(tk.start);
               return d.getMonth() === calendarMonth && d.getFullYear() === calendarYear;
             })
             .sort((a, b) => new Date(a.start) - new Date(b.start))
-            .map(t => (
+            .map(tk => (
               <div
-                key={t.id}
-                className={`relative p-3 rounded-sm border-l-4 shadow-md cursor-pointer transition-all ${postItStyle(t.status)} ${selectedTask === t.id ? 'ring-2 ring-indigo-400 ring-offset-1 scale-[1.02]' : ''}`}
-                style={{ transform: `rotate(${postItRotation(t.id)}deg)` }}
-                onClick={() => setSelectedTask(selectedTask === t.id ? null : t.id)}
+                key={tk.id}
+                className={`relative p-3 rounded-sm border-l-4 shadow-md cursor-pointer transition-all ${postItStyle(tk.status)} ${selectedTask === tk.id ? 'ring-2 ring-indigo-400 ring-offset-1 scale-[1.02]' : ''}`}
+                style={{ transform: `rotate(${postItRotation(tk.id)}deg)` }}
+                onClick={() => setSelectedTask(selectedTask === tk.id ? null : tk.id)}
               >
                 <button
-                  onClick={(e) => openTaskMenu(e, t.id)}
+                  onClick={(e) => openTaskMenu(e, tk.id)}
                   className="absolute top-1 right-1 p-1 text-gray-400 hover:text-gray-700"
                 >
                   <MoreVertical size={14} />
                 </button>
-                <p className={`text-xs font-semibold leading-snug pr-5 line-clamp-3 ${t.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-                  {t.description}
+                <p className={`text-xs font-semibold leading-snug pr-5 line-clamp-3 ${tk.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                  {tk.description}
                 </p>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-[9px] text-gray-400 font-mono">
-                    {new Date(t.start).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    {new Date(tk.start).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })}
                   </span>
-                  <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${t.priority === 0 ? 'bg-rose-200/60 text-rose-600' : 'bg-white/50 text-gray-500'}`}>
-                    {t.priority === 0 ? 'URGENT' : 'REGULAR'}
+                  <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${tk.priority === 0 ? 'bg-rose-200/60 text-rose-600' : 'bg-white/50 text-gray-500'}`}>
+                    {tk.priority === 0 ? t('urgent') : t('regular')}
                   </span>
                 </div>
               </div>
             ))}
-          {tasks.filter(t =>
-            calendarFilters.has(t.status === 'start delayed' ? 'created' : t.status) &&
-            new Date(t.start).getMonth() === calendarMonth &&
-            new Date(t.start).getFullYear() === calendarYear
+          {tasks.filter(tk =>
+            calendarFilters.has(tk.status === 'start delayed' ? 'created' : tk.status) &&
+            new Date(tk.start).getMonth() === calendarMonth &&
+            new Date(tk.start).getFullYear() === calendarYear
           ).length === 0 && (
-            <p className="text-center text-gray-400 py-10 text-sm col-span-2">No tasks found in this view</p>
+            <p className="text-center text-gray-400 py-10 text-sm col-span-2">{t('noTasksFound')}</p>
           )}
         </div>
       </div>
@@ -809,11 +830,11 @@ const App = () => {
         <div className="flex justify-between items-center h-full px-12">
           <button onClick={() => { setEditingTask(null); setCurrentScreen('home'); }} className={`flex flex-col items-center gap-1 ${currentScreen === 'home' ? 'text-black' : 'text-gray-400'}`}>
             <Home size={22} />
-            <span className="text-[9px] font-black uppercase">Home</span>
+            <span className="text-[9px] font-black uppercase">{t('home')}</span>
           </button>
           <button onClick={() => { setEditingTask(null); setCurrentScreen('calendar'); }} className={`flex flex-col items-center gap-1 ${currentScreen === 'calendar' ? 'text-black' : 'text-gray-400'}`}>
             <CalendarIcon size={22} />
-            <span className="text-[9px] font-black uppercase">Schedule</span>
+            <span className="text-[9px] font-black uppercase">{t('schedule')}</span>
           </button>
         </div>
       </div>
