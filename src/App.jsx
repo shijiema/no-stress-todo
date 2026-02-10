@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
+import { loadTasks, saveTasks } from './db';
 import {
   Menu,
   ChevronLeft,
@@ -18,7 +19,8 @@ import {
   Trash2,
   Upload,
   Download,
-  Archive
+  Archive,
+  Play
 } from 'lucide-react';
 
 // Utility for formatting dates
@@ -42,42 +44,32 @@ const toDatetimeLocal = (date) => {
 
 const App = () => {
   // --- State ---
-  const [tasks, setTasks] = useState([
-    {
-      id: crypto.randomUUID(),
-      description: "Design Figma Mockups for Task App",
-      start: new Date(new Date().getTime() - 86400000), 
-      end: new Date(new Date().getTime() + 86400000), 
-      priority: 0, 
-      status: 'in execution',
-      createdAt: new Date()
-    },
-    {
-      id: crypto.randomUUID(),
-      description: "Code Review - Backend Module",
-      start: new Date(new Date().getTime() - 3600000 * 5),
-      end: null,
-      priority: 1,
-      status: 'start delayed',
-      createdAt: new Date()
-    },
-    {
-      id: crypto.randomUUID(),
-      description: "Database Migration",
-      start: new Date(new Date().getTime() - 3600000 * 2),
-      priority: 0,
-      status: 'start delayed',
-      createdAt: new Date()
-    },
-    {
-      id: crypto.randomUUID(),
-      description: "Client Meeting regarding Feedback",
-      start: new Date(new Date().getTime() + 86400000),
-      priority: 0,
-      status: 'created',
-      createdAt: new Date()
-    }
-  ]);
+  const [tasks, setTasks] = useState([]);
+  const [dbReady, setDbReady] = useState(false);
+
+  // Load tasks from IndexedDB on mount; seed sample data on first use
+  useEffect(() => {
+    loadTasks().then(stored => {
+      if (stored.length > 0) {
+        setTasks(stored);
+      } else {
+        const sample = [
+          { id: crypto.randomUUID(), description: "Design Figma Mockups for Task App", start: new Date(Date.now() - 86400000), end: new Date(Date.now() + 86400000), priority: 0, status: 'in execution', createdAt: new Date() },
+          { id: crypto.randomUUID(), description: "Code Review - Backend Module", start: new Date(Date.now() - 3600000 * 5), end: null, priority: 1, status: 'start delayed', createdAt: new Date() },
+          { id: crypto.randomUUID(), description: "Database Migration", start: new Date(Date.now() - 3600000 * 2), end: null, priority: 0, status: 'start delayed', createdAt: new Date() },
+          { id: crypto.randomUUID(), description: "Client Meeting regarding Feedback", start: new Date(Date.now() + 86400000), end: null, priority: 0, status: 'created', createdAt: new Date() },
+        ];
+        setTasks(sample);
+        saveTasks(sample);
+      }
+      setDbReady(true);
+    });
+  }, []);
+
+  // Persist tasks to IndexedDB whenever they change (skip initial empty state)
+  useEffect(() => {
+    if (dbReady) saveTasks(tasks);
+  }, [tasks, dbReady]);
 
   const [currentScreen, setCurrentScreen] = useState('home');
   const [showMenu, setShowMenu] = useState(false);
@@ -207,6 +199,14 @@ const App = () => {
           >
             <Edit2 size={12} /> Edit
           </button>
+          {task.status !== 'in execution' && task.status !== 'completed' && task.status !== 'abandoned' && (
+            <button
+              onClick={() => updateTaskStatus(task.id, 'in execution')}
+              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-blue-600"
+            >
+              <Play size={12} /> Start
+            </button>
+          )}
           <button
             onClick={() => updateTaskStatus(task.id, 'completed')}
             className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-green-600"
