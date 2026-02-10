@@ -75,6 +75,7 @@ const App = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [activeTaskMenu, setActiveTaskMenu] = useState(null); // { id, x, y } or null
   const [editingTask, setEditingTask] = useState(null); 
+  const [selectedTask, setSelectedTask] = useState(null);
   const [calendarFilters, setCalendarFilters] = useState(new Set(['created', 'in execution', 'completed', 'abandoned']));
   const [showBackupSub, setShowBackupSub] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
@@ -98,7 +99,14 @@ const App = () => {
   // --- Actions ---
   
   const updateTaskStatus = (id, newStatus) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
+    setTasks(prev => prev.map(t => {
+      if (t.id !== id) return t;
+      const updates = { status: newStatus };
+      if (newStatus === 'in execution' && t.status !== 'in execution') {
+        updates.start = new Date();
+      }
+      return { ...t, ...updates };
+    }));
     setActiveTaskMenu(null);
   };
 
@@ -346,18 +354,18 @@ const App = () => {
     const shortDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
     return (
-      <div className="flex flex-col h-full bg-gray-50 overflow-y-auto pb-24" onClick={() => setActiveTaskMenu(null)}>
+      <div className="flex flex-col h-full bg-gray-50 overflow-y-auto pb-24" onClick={() => { setActiveTaskMenu(null); setSelectedTask(null); }}>
         <div className="p-6 text-center">
           <h1 className="text-2xl font-light text-gray-500 uppercase tracking-widest">{formatDate(new Date())}</h1>
         </div>
 
         <div className="px-4 space-y-4">
-          <div className="bg-white rounded-2xl shadow-sm border p-4 min-h-[220px] relative">
+          <div className="bg-white rounded-2xl shadow-sm border p-4 relative">
             <h3 className="text-xs font-bold text-gray-400 uppercase mb-4 flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               In Execution
             </h3>
-            <div className="flex items-center gap-3 overflow-x-auto pb-6 no-scrollbar justify-end">
+            <div className="flex items-center gap-3 overflow-x-auto pb-3 thin-scrollbar" style={{ direction: 'rtl' }}>
               {inExecution.length === 0 ? (
                 <p className="text-gray-400 text-sm italic py-8 text-center w-full">No active tasks</p>
               ) : (
@@ -367,8 +375,9 @@ const App = () => {
                   return (
                     <div
                       key={task.id}
-                      style={{ opacity: depth, transform: `rotate(${postItRotation(task.id)}deg)` }}
-                      className={`flex-shrink-0 w-[140px] p-3 rounded-sm border-l-4 shadow-md relative ${postItColors(task.status)}`}
+                      onClick={(e) => { e.stopPropagation(); setSelectedTask(selectedTask === task.id ? null : task.id); }}
+                      style={{ direction: 'ltr', opacity: selectedTask === task.id ? 1 : depth, transform: `rotate(${postItRotation(task.id)}deg)` }}
+                      className={`flex-shrink-0 w-[140px] p-3 rounded-sm border-l-4 shadow-md relative cursor-pointer transition-all ${postItColors(task.status)} ${selectedTask === task.id ? 'ring-2 ring-indigo-400 ring-offset-1 scale-105' : ''}`}
                     >
                       <button
                         onClick={(e) => openTaskMenu(e, task.id)}
@@ -403,15 +412,16 @@ const App = () => {
   const Section = ({ label, tasks, color, bgColor }) => (
     <div className={`rounded-xl border border-transparent p-4 ${bgColor} transition-all`}>
       <h3 className={`text-xs font-bold uppercase mb-3 tracking-wide ${color}`}>{label}</h3>
-      <div className="flex flex-row-reverse gap-3 overflow-x-auto no-scrollbar min-h-[40px] justify-start">
+      <div className="flex gap-3 overflow-x-auto thin-scrollbar pb-2 min-h-[40px]" style={{ direction: 'rtl' }}>
         {tasks.length === 0 ? (
           <p className="text-gray-400 text-[10px] italic">No tasks</p>
         ) : (
           tasks.map(t => (
             <div
               key={t.id}
-              style={{ transform: `rotate(${postItRotation(t.id)}deg)` }}
-              className={`flex-shrink-0 min-w-[140px] max-w-[180px] p-3 rounded-sm border-l-4 shadow-md relative ${postItColors(t.status)}`}
+              onClick={(e) => { e.stopPropagation(); setSelectedTask(selectedTask === t.id ? null : t.id); }}
+              style={{ direction: 'ltr', transform: `rotate(${postItRotation(t.id)}deg)` }}
+              className={`flex-shrink-0 min-w-[140px] max-w-[180px] p-3 rounded-sm border-l-4 shadow-md relative cursor-pointer transition-all ${postItColors(t.status)} ${selectedTask === t.id ? 'ring-2 ring-indigo-400 ring-offset-1 scale-105' : ''}`}
             >
               <button
                 onClick={(e) => openTaskMenu(e, t.id)}
@@ -719,9 +729,9 @@ const App = () => {
             .map(t => (
               <div
                 key={t.id}
-                className={`relative p-3 rounded-sm border-l-4 shadow-md ${postItStyle(t.status)}`}
-                style={{ transform: `rotate(${(t.id.charCodeAt?.(0) || 0) % 2 === 0 ? -1 : 1}deg)` }}
-                onClick={() => setActiveTaskMenu(null)}
+                className={`relative p-3 rounded-sm border-l-4 shadow-md cursor-pointer transition-all ${postItStyle(t.status)} ${selectedTask === t.id ? 'ring-2 ring-indigo-400 ring-offset-1 scale-[1.02]' : ''}`}
+                style={{ transform: `rotate(${postItRotation(t.id)}deg)` }}
+                onClick={() => setSelectedTask(selectedTask === t.id ? null : t.id)}
               >
                 <button
                   onClick={(e) => openTaskMenu(e, t.id)}

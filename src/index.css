@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Add the custom scrollbar fix from the App code */
-.no-scrollbar::-webkit-scrollbar { display: none; } 
+/* Hide scrollbar */
+.no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Thin horizontal scrollbar */
+.thin-scrollbar { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
+.thin-scrollbar::-webkit-scrollbar { height: 4px; }
+.thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.thin-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+.thin-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
