@@ -47,17 +47,19 @@ const App = () => {
   const [tasks, setTasks] = useState([]);
   const [dbReady, setDbReady] = useState(false);
 
-  // Load tasks from IndexedDB on mount; seed sample data on first use
+  const EXAMPLE_TAG = '__example__';
+
+  // Load tasks from IndexedDB on mount; seed examples on first use
   useEffect(() => {
     loadTasks().then(stored => {
       if (stored.length > 0) {
         setTasks(stored);
       } else {
         const sample = [
-          { id: crypto.randomUUID(), description: "Design Figma Mockups for Task App", start: new Date(Date.now() - 86400000), end: new Date(Date.now() + 86400000), priority: 0, status: 'in execution', createdAt: new Date() },
-          { id: crypto.randomUUID(), description: "Code Review - Backend Module", start: new Date(Date.now() - 3600000 * 5), end: null, priority: 1, status: 'start delayed', createdAt: new Date() },
-          { id: crypto.randomUUID(), description: "Database Migration", start: new Date(Date.now() - 3600000 * 2), end: null, priority: 0, status: 'start delayed', createdAt: new Date() },
-          { id: crypto.randomUUID(), description: "Client Meeting regarding Feedback", start: new Date(Date.now() + 86400000), end: null, priority: 0, status: 'created', createdAt: new Date() },
+          { id: crypto.randomUUID(), description: "Design Figma Mockups for Task App", start: new Date(Date.now() - 86400000), end: new Date(Date.now() + 86400000), priority: 0, status: 'in execution', createdAt: new Date(), tag: EXAMPLE_TAG },
+          { id: crypto.randomUUID(), description: "Code Review - Backend Module", start: new Date(Date.now() - 3600000 * 5), end: null, priority: 1, status: 'start delayed', createdAt: new Date(), tag: EXAMPLE_TAG },
+          { id: crypto.randomUUID(), description: "Database Migration", start: new Date(Date.now() - 3600000 * 2), end: null, priority: 0, status: 'start delayed', createdAt: new Date(), tag: EXAMPLE_TAG },
+          { id: crypto.randomUUID(), description: "Client Meeting regarding Feedback", start: new Date(Date.now() + 86400000), end: null, priority: 0, status: 'created', createdAt: new Date(), tag: EXAMPLE_TAG },
         ];
         setTasks(sample);
         saveTasks(sample);
@@ -345,6 +347,14 @@ const App = () => {
                   <Upload size={16} className="text-blue-500" /> Import JSON Backup
                 </button>
               </div>
+            )}
+            {tasks.some(t => t.tag === EXAMPLE_TAG) && (
+              <button
+                className="flex items-center gap-3 w-full p-3 hover:bg-gray-50 rounded-lg text-left text-red-500"
+                onClick={() => { setTasks(prev => prev.filter(t => t.tag !== EXAMPLE_TAG)); setShowMenu(false); setShowBackupSub(false); }}
+              >
+                <Trash2 size={20} /> Remove Example Tasks
+              </button>
             )}
           </nav>
         </div>
