@@ -88,6 +88,21 @@ const App = () => {
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
 
+  // --- Post-it style helper ---
+  const postItColors = (status) => {
+    if (status === 'in execution') return 'bg-green-50 border-l-green-500';
+    if (status === 'created') return 'bg-indigo-50 border-l-indigo-400';
+    if (status === 'start delayed') return 'bg-rose-50 border-l-rose-400';
+    if (status === 'completed') return 'bg-gray-100 border-l-gray-400';
+    if (status === 'abandoned') return 'bg-red-50 border-l-red-400';
+    return 'bg-yellow-50 border-l-yellow-400';
+  };
+
+  const postItRotation = (id) => {
+    const code = typeof id === 'string' ? (id.charCodeAt(0) || 0) : id;
+    return code % 2 === 0 ? -1 : 1;
+  };
+
   // --- Actions ---
   
   const updateTaskStatus = (id, newStatus) => {
@@ -217,7 +232,7 @@ const App = () => {
           <div className="absolute inset-0 bg-indigo-100 rounded-l-md flex items-center px-4" 
                style={{ clipPath: 'polygon(0% 0%, 90% 0%, 100% 50%, 90% 100%, 0% 100%)' }}>
             <span className="text-indigo-800 font-black italic tracking-widest text-sm uppercase flex items-center gap-2">
-              Time Flies <ArrowRight size={16} />
+              Get organized, Get it Done!
             </span>
           </div>
         </div>
@@ -342,7 +357,7 @@ const App = () => {
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               In Execution
             </h3>
-            <div className="flex items-center gap-4 overflow-x-auto pb-6 no-scrollbar justify-end">
+            <div className="flex items-center gap-3 overflow-x-auto pb-6 no-scrollbar justify-end">
               {inExecution.length === 0 ? (
                 <p className="text-gray-400 text-sm italic py-8 text-center w-full">No active tasks</p>
               ) : (
@@ -352,21 +367,23 @@ const App = () => {
                   return (
                     <div
                       key={task.id}
-                      style={{ opacity: depth }}
-                      className={`flex-shrink-0 w-[140px] p-4 rounded-xl border-l-4 transition-all shadow-sm relative group
-                        ${isUrgent ? 'bg-rose-50 border-rose-400 text-rose-600' : 'bg-green-50 border-green-400 text-green-700'}
-                      `}
+                      style={{ opacity: depth, transform: `rotate(${postItRotation(task.id)}deg)` }}
+                      className={`flex-shrink-0 w-[140px] p-3 rounded-sm border-l-4 shadow-md relative ${postItColors(task.status)}`}
                     >
                       <button
                         onClick={(e) => openTaskMenu(e, task.id)}
-                        className="absolute top-2 right-1 p-1 opacity-40 hover:opacity-100"
+                        className="absolute top-1 right-1 p-1 text-gray-400 hover:text-gray-700"
                       >
                         <MoreVertical size={14} />
                       </button>
-                      <p className="text-xs font-bold line-clamp-3 h-12 leading-tight pr-2">{task.description}</p>
-                      <div className="mt-4 flex items-center gap-1 text-[10px] opacity-70 font-bold uppercase">
-                        <Clock size={10} />
-                        <span>{isUrgent ? 'Priority High' : 'In Progress'}</span>
+                      <p className="text-xs font-semibold line-clamp-3 h-12 leading-snug pr-4 text-gray-800">{task.description}</p>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-[9px] text-gray-400 font-mono">
+                          {new Date(task.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${isUrgent ? 'bg-rose-200/60 text-rose-600' : 'bg-white/50 text-gray-500'}`}>
+                          {isUrgent ? 'URGENT' : 'REGULAR'}
+                        </span>
                       </div>
                     </div>
                   );
@@ -386,26 +403,30 @@ const App = () => {
   const Section = ({ label, tasks, color, bgColor }) => (
     <div className={`rounded-xl border border-transparent p-4 ${bgColor} transition-all`}>
       <h3 className={`text-xs font-bold uppercase mb-3 tracking-wide ${color}`}>{label}</h3>
-      <div className="flex flex-row-reverse gap-2 overflow-x-auto no-scrollbar min-h-[40px] justify-start">
+      <div className="flex flex-row-reverse gap-3 overflow-x-auto no-scrollbar min-h-[40px] justify-start">
         {tasks.length === 0 ? (
           <p className="text-gray-400 text-[10px] italic">No tasks</p>
         ) : (
           tasks.map(t => (
-            <div key={t.id} className="bg-white/90 p-3 rounded-lg border text-xs shadow-sm flex flex-col min-w-[150px] max-w-[200px] relative">
+            <div
+              key={t.id}
+              style={{ transform: `rotate(${postItRotation(t.id)}deg)` }}
+              className={`flex-shrink-0 min-w-[140px] max-w-[180px] p-3 rounded-sm border-l-4 shadow-md relative ${postItColors(t.status)}`}
+            >
               <button
                 onClick={(e) => openTaskMenu(e, t.id)}
-                className="absolute top-2 right-1 p-1 opacity-40 hover:opacity-100"
+                className="absolute top-1 right-1 p-1 text-gray-400 hover:text-gray-700"
               >
                 <MoreVertical size={14} />
               </button>
 
-              <span className="font-medium line-clamp-1 pr-4 text-gray-800">{t.description}</span>
+              <p className="text-xs font-semibold line-clamp-2 leading-snug pr-4 text-gray-800">{t.description}</p>
               <div className="flex justify-between items-center mt-2">
-                <span className={`text-[8px] px-2 py-0.5 rounded font-bold ${t.priority === 0 ? 'bg-rose-100 text-rose-500' : 'bg-gray-100 text-gray-500'}`}>
-                  {t.priority === 0 ? 'URGENT' : 'REGULAR'}
-                </span>
                 <span className="text-[9px] text-gray-400 font-mono">
                   {new Date(t.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${t.priority === 0 ? 'bg-rose-200/60 text-rose-600' : 'bg-white/50 text-gray-500'}`}>
+                  {t.priority === 0 ? 'URGENT' : 'REGULAR'}
                 </span>
               </div>
             </div>
@@ -573,6 +594,14 @@ const App = () => {
       return 'bg-gray-300';
     };
 
+    const postItStyle = (status) => {
+      if (status === 'created' || status === 'start delayed') return 'bg-indigo-50 border-l-indigo-400';
+      if (status === 'in execution') return 'bg-green-50 border-l-green-500';
+      if (status === 'completed') return 'bg-gray-100 border-l-gray-400';
+      if (status === 'abandoned') return 'bg-red-50 border-l-red-400';
+      return 'bg-yellow-50 border-l-yellow-400';
+    };
+
     // Get filtered tasks that have dots on a given day
     const getTasksForDay = (day) => {
       return tasks.filter(t => {
@@ -678,8 +707,8 @@ const App = () => {
           </div>
         </div>
 
-        {/* Task List */}
-        <div className="px-4 mt-4 space-y-3">
+        {/* Task List - Post-it Notes */}
+        <div className="px-4 mt-4 grid grid-cols-2 gap-3">
           {tasks
             .filter(t => calendarFilters.has(t.status === 'start delayed' ? 'created' : t.status))
             .filter(t => {
@@ -688,22 +717,29 @@ const App = () => {
             })
             .sort((a, b) => new Date(a.start) - new Date(b.start))
             .map(t => (
-              <div key={t.id} className="p-4 border rounded-xl flex items-center gap-4 relative" onClick={() => setActiveTaskMenu(null)}>
-                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${statusDotColor(t.status)}`} />
-                <div className="flex-1">
-                  <p className={`text-sm font-semibold ${t.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-800'}`}>
-                    {t.description}
-                  </p>
-                  <span className="text-[10px] text-gray-400 font-mono">
-                    {new Date(t.start).toLocaleDateString([], { month: 'short', day: 'numeric' })} at {new Date(t.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
+              <div
+                key={t.id}
+                className={`relative p-3 rounded-sm border-l-4 shadow-md ${postItStyle(t.status)}`}
+                style={{ transform: `rotate(${(t.id.charCodeAt?.(0) || 0) % 2 === 0 ? -1 : 1}deg)` }}
+                onClick={() => setActiveTaskMenu(null)}
+              >
                 <button
                   onClick={(e) => openTaskMenu(e, t.id)}
-                  className="p-2 text-gray-400 hover:text-black"
+                  className="absolute top-1 right-1 p-1 text-gray-400 hover:text-gray-700"
                 >
-                  <MoreVertical size={16} />
+                  <MoreVertical size={14} />
                 </button>
+                <p className={`text-xs font-semibold leading-snug pr-5 line-clamp-3 ${t.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                  {t.description}
+                </p>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[9px] text-gray-400 font-mono">
+                    {new Date(t.start).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                  </span>
+                  <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${t.priority === 0 ? 'bg-rose-200/60 text-rose-600' : 'bg-white/50 text-gray-500'}`}>
+                    {t.priority === 0 ? 'URGENT' : 'REGULAR'}
+                  </span>
+                </div>
               </div>
             ))}
           {tasks.filter(t =>
@@ -711,7 +747,7 @@ const App = () => {
             new Date(t.start).getMonth() === calendarMonth &&
             new Date(t.start).getFullYear() === calendarYear
           ).length === 0 && (
-            <p className="text-center text-gray-400 py-10 text-sm">No tasks found in this view</p>
+            <p className="text-center text-gray-400 py-10 text-sm col-span-2">No tasks found in this view</p>
           )}
         </div>
       </div>
