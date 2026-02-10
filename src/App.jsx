@@ -227,6 +227,12 @@ const App = () => {
           >
             <Trash2 size={12} /> Abandon
           </button>
+          <button
+            onClick={() => { setTasks(prev => prev.filter(t => t.id !== task.id)); setActiveTaskMenu(null); }}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-red-50 text-red-700 border-t"
+          >
+            <X size={12} /> Delete
+          </button>
         </div>
       </div>,
       document.body
@@ -393,7 +399,7 @@ const App = () => {
                       <div className="mt-2 flex items-end justify-between">
                         <div className="text-[9px] text-gray-400 font-mono leading-tight">
                           <div>{new Date(task.start).toLocaleDateString([], { month: 'short', day: 'numeric' })}</div>
-                          <div>{new Date(task.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                          <div>{new Date(task.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
                         </div>
                         <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${isUrgent ? 'bg-rose-200/60 text-rose-600' : 'bg-white/50 text-gray-500'}`}>
                           {isUrgent ? 'URGENT' : 'REGULAR'}
@@ -439,7 +445,7 @@ const App = () => {
               <div className="flex justify-between items-end mt-2">
                 <div className="text-[9px] text-gray-400 font-mono leading-tight">
                   <div>{new Date(t.start).toLocaleDateString([], { month: 'short', day: 'numeric' })}</div>
-                  <div>{new Date(t.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                  <div>{new Date(t.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
                 </div>
                 <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${t.priority === 0 ? 'bg-rose-200/60 text-rose-600' : 'bg-white/50 text-gray-500'}`}>
                   {t.priority === 0 ? 'URGENT' : 'REGULAR'}
