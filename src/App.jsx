@@ -22,7 +22,8 @@ import {
   Download,
   Archive,
   Play,
-  Globe
+  Globe,
+  RefreshCw
 } from 'lucide-react';
 
 // Helper to format Date objects for datetime-local inputs
@@ -63,6 +64,16 @@ const App = () => {
 
   const EXAMPLE_TAG = '__example__';
 
+  // Refresh: reload tasks from DB and navigate to home
+  const refreshTasks = useCallback(() => {
+    loadTasks().then(stored => {
+      if (stored.length > 0) {
+        setTasks(stored);
+      }
+      setCurrentScreen('home');
+    });
+  }, []);
+
   // Load tasks from IndexedDB on mount; seed examples on first use
   useEffect(() => {
     loadTasks().then(stored => {
@@ -79,6 +90,7 @@ const App = () => {
         saveTasks(sample);
       }
       setDbReady(true);
+      setCurrentScreen('home');
     });
   }, []);
 
@@ -571,7 +583,7 @@ const App = () => {
               onClick={() => setFormData({...formData, priority: 1})}
               className={`flex-1 py-3.5 rounded-full text-sm font-medium transition-all ${
                 formData.priority === 1
-                  ? 'bg-gray-200 text-gray-700'
+                  ? 'bg-green-400 text-white'
                   : 'bg-gray-100 text-gray-500'
               }`}
             >
@@ -836,10 +848,16 @@ const App = () => {
             </button>
           </div>
           <div className="flex-1" />
-          <button onClick={() => { setEditingTask(null); setCurrentScreen('calendar'); }} className={`flex flex-col items-center gap-1 ${currentScreen === 'calendar' ? 'text-black' : 'text-gray-400'}`}>
-            <CalendarIcon size={22} />
-            <span className="text-[9px] font-black uppercase">{t('schedule')}</span>
-          </button>
+          <div className="flex gap-8">
+            <button onClick={refreshTasks} className="flex flex-col items-center gap-1 text-gray-400">
+              <RefreshCw size={22} />
+              <span className="text-[9px] font-black uppercase">{t('refresh')}</span>
+            </button>
+            <button onClick={() => { setEditingTask(null); setCurrentScreen('calendar'); }} className={`flex flex-col items-center gap-1 ${currentScreen === 'calendar' ? 'text-black' : 'text-gray-400'}`}>
+              <CalendarIcon size={22} />
+              <span className="text-[9px] font-black uppercase">{t('schedule')}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

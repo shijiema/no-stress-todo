@@ -59,6 +59,7 @@ const translations = {
 
     // Bottom nav
     home: 'Home',
+    refresh: 'Refresh',
     schedule: 'Schedule',
 
     // Alert
@@ -123,6 +124,7 @@ const translations = {
 
     // Bottom nav
     home: '首页',
+    refresh: '刷新',
     schedule: '日程',
 
     // Alert
