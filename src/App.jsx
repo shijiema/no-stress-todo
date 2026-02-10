@@ -584,6 +584,44 @@ const App = () => {
             })}
           </div>
         </div>
+
+        {/* Task List */}
+        <div className="px-4 mt-4 space-y-3">
+          {tasks
+            .filter(t => calendarFilters.has(t.status === 'start delayed' ? 'created' : t.status))
+            .filter(t => {
+              const d = new Date(t.start);
+              return d.getMonth() === calendarMonth && d.getFullYear() === calendarYear;
+            })
+            .sort((a, b) => new Date(a.start) - new Date(b.start))
+            .map(t => (
+              <div key={t.id} className="p-4 border rounded-xl flex items-center gap-4 relative" onClick={() => setActiveTaskMenu(null)}>
+                <div className={`w-3 h-3 rounded-full flex-shrink-0 ${statusDotColor(t.status)}`} />
+                <div className="flex-1">
+                  <p className={`text-sm font-semibold ${t.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                    {t.description}
+                  </p>
+                  <span className="text-[10px] text-gray-400 font-mono">
+                    {new Date(t.start).toLocaleDateString([], { month: 'short', day: 'numeric' })} at {new Date(t.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setActiveTaskMenu(activeTaskMenu === t.id ? null : t.id); }}
+                  className="p-2 text-gray-400 hover:text-black"
+                >
+                  <MoreVertical size={16} />
+                </button>
+                <TaskContextMenu task={t} />
+              </div>
+            ))}
+          {tasks.filter(t =>
+            calendarFilters.has(t.status === 'start delayed' ? 'created' : t.status) &&
+            new Date(t.start).getMonth() === calendarMonth &&
+            new Date(t.start).getFullYear() === calendarYear
+          ).length === 0 && (
+            <p className="text-center text-gray-400 py-10 text-sm">No tasks found in this view</p>
+          )}
+        </div>
       </div>
     );
   };
