@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import {
   Menu,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Plus,
   Calendar as CalendarIcon,
   Home,
@@ -15,7 +17,8 @@ import {
   CheckCircle,
   Trash2,
   Upload,
-  Download
+  Download,
+  Archive
 } from 'lucide-react';
 
 // Utility for formatting dates
@@ -41,7 +44,7 @@ const App = () => {
   // --- State ---
   const [tasks, setTasks] = useState([
     {
-      id: 1,
+      id: crypto.randomUUID(),
       description: "Design Figma Mockups for Task App",
       start: new Date(new Date().getTime() - 86400000), 
       end: new Date(new Date().getTime() + 86400000), 
@@ -50,7 +53,7 @@ const App = () => {
       createdAt: new Date()
     },
     {
-      id: 2,
+      id: crypto.randomUUID(),
       description: "Code Review - Backend Module",
       start: new Date(new Date().getTime() - 3600000 * 5),
       end: null,
@@ -59,7 +62,7 @@ const App = () => {
       createdAt: new Date()
     },
     {
-      id: 4,
+      id: crypto.randomUUID(),
       description: "Database Migration",
       start: new Date(new Date().getTime() - 3600000 * 2),
       priority: 0,
@@ -67,7 +70,7 @@ const App = () => {
       createdAt: new Date()
     },
     {
-      id: 3,
+      id: crypto.randomUUID(),
       description: "Client Meeting regarding Feedback",
       start: new Date(new Date().getTime() + 86400000),
       priority: 0,
@@ -78,9 +81,10 @@ const App = () => {
 
   const [currentScreen, setCurrentScreen] = useState('home');
   const [showMenu, setShowMenu] = useState(false);
-  const [activeTaskMenu, setActiveTaskMenu] = useState(null); 
+  const [activeTaskMenu, setActiveTaskMenu] = useState(null); // { id, x, y } or null
   const [editingTask, setEditingTask] = useState(null); 
   const [calendarFilters, setCalendarFilters] = useState(new Set(['created', 'in execution', 'completed', 'abandoned']));
+  const [showBackupSub, setShowBackupSub] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
 
@@ -95,7 +99,7 @@ const App = () => {
     if (editingTask) {
       setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, ...taskData } : t));
     } else {
-      setTasks([...tasks, { ...taskData, id: Date.now(), createdAt: new Date() }]);
+      setTasks([...tasks, { ...taskData, id: crypto.randomUUID(), createdAt: new Date() }]);
     }
     setEditingTask(null);
     setCurrentScreen('home');
@@ -152,30 +156,57 @@ const App = () => {
 
   // --- UI Components ---
 
-  const TaskContextMenu = ({ task }) => {
-    if (activeTaskMenu !== task.id) return null;
+  const openTaskMenu = (e, taskId) => {
+    e.stopPropagation();
+    if (activeTaskMenu?.id === taskId) { setActiveTaskMenu(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setActiveTaskMenu({ id: taskId, x: rect.right, y: rect.bottom + 4 });
+  };
 
-    return (
-      <div className="absolute top-8 right-0 w-32 bg-white rounded-lg shadow-xl border z-50 py-1 text-xs overflow-hidden">
-        <button 
-          onClick={(e) => { e.stopPropagation(); handleEditClick(task); }}
-          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-gray-700"
+  const TaskContextMenu = () => {
+    const menuRef = useRef(null);
+    const task = tasks.find(t => t.id === activeTaskMenu?.id);
+
+    useEffect(() => {
+      if (!menuRef.current || !activeTaskMenu) return;
+      const menu = menuRef.current;
+      const rect = menu.getBoundingClientRect();
+      // Clamp so menu stays within viewport
+      if (rect.right > window.innerWidth) menu.style.left = `${window.innerWidth - rect.width - 8}px`;
+      if (rect.bottom > window.innerHeight) menu.style.top = `${activeTaskMenu.y - rect.height - 36}px`;
+    });
+
+    if (!activeTaskMenu || !task) return null;
+
+    return ReactDOM.createPortal(
+      <div className="fixed inset-0 z-[200]" onClick={() => setActiveTaskMenu(null)}>
+        <div
+          ref={menuRef}
+          className="fixed w-32 bg-white rounded-lg shadow-xl border py-1 text-xs"
+          style={{ top: activeTaskMenu.y, left: activeTaskMenu.x - 128 }}
+          onClick={(e) => e.stopPropagation()}
         >
-          <Edit2 size={12} /> Edit
-        </button>
-        <button 
-          onClick={(e) => { e.stopPropagation(); updateTaskStatus(task.id, 'completed'); }}
-          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-green-600"
-        >
-          <CheckCircle size={12} /> Finish
-        </button>
-        <button 
-          onClick={(e) => { e.stopPropagation(); updateTaskStatus(task.id, 'abandoned'); }}
-          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-red-600"
-        >
-          <Trash2 size={12} /> Abandon
-        </button>
-      </div>
+          <button
+            onClick={() => handleEditClick(task)}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-gray-700"
+          >
+            <Edit2 size={12} /> Edit
+          </button>
+          <button
+            onClick={() => updateTaskStatus(task.id, 'completed')}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-green-600"
+          >
+            <CheckCircle size={12} /> Finish
+          </button>
+          <button
+            onClick={() => updateTaskStatus(task.id, 'abandoned')}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-red-600"
+          >
+            <Trash2 size={12} /> Abandon
+          </button>
+        </div>
+      </div>,
+      document.body
     );
   };
 
@@ -197,25 +228,91 @@ const App = () => {
     </div>
   );
 
+  const handleExportJson = () => {
+    const data = JSON.stringify(tasks, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `no-stress-todo-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportJson = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (!Array.isArray(imported)) throw new Error('Invalid format');
+          const restored = imported.map(t => ({
+            ...t,
+            id: t.id || crypto.randomUUID(),
+            start: new Date(t.start),
+            end: t.end ? new Date(t.end) : null,
+            createdAt: t.createdAt ? new Date(t.createdAt) : new Date()
+          }));
+          setTasks(prev => {
+            const merged = [...prev];
+            for (const incoming of restored) {
+              const idx = merged.findIndex(t => t.id === incoming.id);
+              if (idx !== -1) merged[idx] = incoming;
+              else merged.push(incoming);
+            }
+            return merged;
+          });
+          setShowMenu(false);
+          setShowBackupSub(false);
+        } catch {
+          alert('Invalid backup file. Please select a valid JSON backup.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   const SideMenu = () => (
     <div className={`fixed inset-0 z-[100] transition-opacity ${showMenu ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-      <div className="absolute inset-0 bg-black/50" onClick={() => setShowMenu(false)} />
+      <div className="absolute inset-0 bg-black/50" onClick={() => { setShowMenu(false); setShowBackupSub(false); }} />
       <div className={`absolute right-0 top-0 h-full w-64 bg-white shadow-xl transform transition-transform ${showMenu ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-6">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-xl font-bold">Menu</h2>
-            <X onClick={() => setShowMenu(false)} className="cursor-pointer" />
+            <X onClick={() => { setShowMenu(false); setShowBackupSub(false); }} className="cursor-pointer" />
           </div>
-          <nav className="space-y-4">
-            <button className="flex items-center gap-3 w-full p-3 hover:bg-gray-50 rounded-lg text-left" onClick={() => {setCurrentScreen('calendar'); setShowMenu(false);}}>
-              <CalendarIcon size={20} className="text-indigo-500" /> Full Calendar
+          <nav className="space-y-1">
+            <button
+              className="flex items-center justify-between w-full p-3 hover:bg-gray-50 rounded-lg text-left"
+              onClick={() => setShowBackupSub(!showBackupSub)}
+            >
+              <span className="flex items-center gap-3">
+                <Archive size={20} className="text-indigo-500" /> Backup
+              </span>
+              <ChevronDown size={16} className={`text-gray-400 transition-transform ${showBackupSub ? 'rotate-180' : ''}`} />
             </button>
-            <button className="flex items-center gap-3 w-full p-3 hover:bg-gray-50 rounded-lg text-left">
-              <Upload size={20} className="text-blue-500" /> Import
-            </button>
-            <button className="flex items-center gap-3 w-full p-3 hover:bg-gray-50 rounded-lg text-left">
-              <Download size={20} className="text-purple-500" /> Export
-            </button>
+            {showBackupSub && (
+              <div className="ml-8 space-y-1">
+                <button
+                  className="flex items-center gap-3 w-full p-2.5 hover:bg-gray-50 rounded-lg text-left text-sm text-gray-700"
+                  onClick={handleExportJson}
+                >
+                  <Download size={16} className="text-purple-500" /> Export as JSON
+                </button>
+                <button
+                  className="flex items-center gap-3 w-full p-2.5 hover:bg-gray-50 rounded-lg text-left text-sm text-gray-700"
+                  onClick={handleImportJson}
+                >
+                  <Upload size={16} className="text-blue-500" /> Import JSON Backup
+                </button>
+              </div>
+            )}
           </nav>
         </div>
       </div>
@@ -223,10 +320,15 @@ const App = () => {
   );
 
   const HomeScreen = () => {
+    const now = new Date();
     const inExecution = getTasksByStatus('in execution');
     const delayed = getTasksByStatus('start delayed');
     const nextDay = getTasksByStatus('start next day');
     const inTwoDays = getTasksByStatus('start in two days');
+
+    const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+    const dayAfter = new Date(now); dayAfter.setDate(now.getDate() + 2);
+    const shortDate = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
     return (
       <div className="flex flex-col h-full bg-gray-50 overflow-y-auto pb-24" onClick={() => setActiveTaskMenu(null)}>
@@ -256,12 +358,11 @@ const App = () => {
                       `}
                     >
                       <button
-                        onClick={(e) => { e.stopPropagation(); setActiveTaskMenu(activeTaskMenu === task.id ? null : task.id); }}
+                        onClick={(e) => openTaskMenu(e, task.id)}
                         className="absolute top-2 right-1 p-1 opacity-40 hover:opacity-100"
                       >
                         <MoreVertical size={14} />
                       </button>
-                      <TaskContextMenu task={task} />
                       <p className="text-xs font-bold line-clamp-3 h-12 leading-tight pr-2">{task.description}</p>
                       <div className="mt-4 flex items-center gap-1 text-[10px] opacity-70 font-bold uppercase">
                         <Clock size={10} />
@@ -274,15 +375,15 @@ const App = () => {
             </div>
           </div>
 
-          <Section label="Start Delayed" tasks={delayed} color="text-rose-500" bgColor="bg-rose-50" onMenuToggle={setActiveTaskMenu} activeMenu={activeTaskMenu} onUpdate={updateTaskStatus} onEdit={handleEditClick} />
-          <Section label="Start Next Day" tasks={nextDay} color="text-blue-500" bgColor="bg-blue-50" onMenuToggle={setActiveTaskMenu} activeMenu={activeTaskMenu} onUpdate={updateTaskStatus} onEdit={handleEditClick} />
-          <Section label="Start In Two Days" tasks={inTwoDays} color="text-purple-500" bgColor="bg-purple-50" onMenuToggle={setActiveTaskMenu} activeMenu={activeTaskMenu} onUpdate={updateTaskStatus} onEdit={handleEditClick} />
+          <Section label="Start Delayed" tasks={delayed} color="text-rose-500" bgColor="bg-rose-50" />
+          <Section label={`Start Next Day · ${shortDate(tomorrow)}`} tasks={nextDay} color="text-blue-500" bgColor="bg-blue-50" />
+          <Section label={`Start In Two Days · ${shortDate(dayAfter)}`} tasks={inTwoDays} color="text-purple-500" bgColor="bg-purple-50" />
         </div>
       </div>
     );
   };
 
-  const Section = ({ label, tasks, color, bgColor, onMenuToggle, activeMenu, onUpdate, onEdit }) => (
+  const Section = ({ label, tasks, color, bgColor }) => (
     <div className={`rounded-xl border border-transparent p-4 ${bgColor} transition-all`}>
       <h3 className={`text-xs font-bold uppercase mb-3 tracking-wide ${color}`}>{label}</h3>
       <div className="flex flex-row-reverse gap-2 overflow-x-auto no-scrollbar min-h-[40px] justify-start">
@@ -291,20 +392,12 @@ const App = () => {
         ) : (
           tasks.map(t => (
             <div key={t.id} className="bg-white/90 p-3 rounded-lg border text-xs shadow-sm flex flex-col min-w-[150px] max-w-[200px] relative">
-              <button 
-                onClick={(e) => { e.stopPropagation(); onMenuToggle(activeMenu === t.id ? null : t.id); }}
+              <button
+                onClick={(e) => openTaskMenu(e, t.id)}
                 className="absolute top-2 right-1 p-1 opacity-40 hover:opacity-100"
               >
                 <MoreVertical size={14} />
               </button>
-              
-              {activeMenu === t.id && (
-                <div className="absolute top-8 right-0 w-28 bg-white rounded-lg shadow-xl border z-50 py-1 text-[10px] overflow-hidden">
-                  <button onClick={(e) => { e.stopPropagation(); onEdit(t); }} className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50"><Edit2 size={10} /> Edit</button>
-                  <button onClick={(e) => { e.stopPropagation(); onUpdate(t.id, 'completed'); }} className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 text-green-600"><CheckCircle size={10} /> Finish</button>
-                  <button onClick={(e) => { e.stopPropagation(); onUpdate(t.id, 'abandoned'); }} className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 text-red-600"><Trash2 size={10} /> Abandon</button>
-                </div>
-              )}
 
               <span className="font-medium line-clamp-1 pr-4 text-gray-800">{t.description}</span>
               <div className="flex justify-between items-center mt-2">
@@ -606,12 +699,11 @@ const App = () => {
                   </span>
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setActiveTaskMenu(activeTaskMenu === t.id ? null : t.id); }}
+                  onClick={(e) => openTaskMenu(e, t.id)}
                   className="p-2 text-gray-400 hover:text-black"
                 >
                   <MoreVertical size={16} />
                 </button>
-                <TaskContextMenu task={t} />
               </div>
             ))}
           {tasks.filter(t =>
@@ -630,6 +722,7 @@ const App = () => {
     <div className="max-w-md mx-auto h-screen bg-white relative font-sans text-gray-900 shadow-2xl flex flex-col">
       <Header />
       <SideMenu />
+      <TaskContextMenu />
       <div className="flex-1 overflow-hidden">
         {currentScreen === 'home' && <HomeScreen />}
         {(currentScreen === 'create' || currentScreen === 'edit') && <TaskFormScreen />}
