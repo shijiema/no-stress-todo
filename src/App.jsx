@@ -236,17 +236,21 @@ const App = () => {
   const Header = () => (
     <div className="bg-white border-b sticky top-0 z-10 p-4">
       <div className="flex items-center justify-between h-12 relative">
-        <div className="flex-1 mr-4 h-10 relative flex items-center">
-          <div className="absolute inset-0 bg-indigo-100 rounded-l-md flex items-center px-4" 
-               style={{ clipPath: 'polygon(0% 0%, 90% 0%, 100% 50%, 90% 100%, 0% 100%)' }}>
-            <span className="text-indigo-800 font-black italic tracking-widest text-sm uppercase flex items-center gap-2">
-              Get organized, Get it Done!
-            </span>
-          </div>
-        </div>
         <button onClick={() => setShowMenu(true)} className="p-2 hover:bg-gray-100 rounded-full flex-shrink-0">
           <Menu size={28} />
         </button>
+        <div className="flex-1 ml-4 h-12 relative flex items-center">
+          {/* Arrow shaft */}
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 bg-indigo-100 rounded-l-md flex items-center px-4"
+               style={{ width: 'calc(100% - 20px)', height: '60%' }}>
+            <span className="text-indigo-800 font-black italic tracking-widest text-sm uppercase">
+              Get organized, Get it Done!
+            </span>
+          </div>
+          {/* Arrow head */}
+          <div className="absolute right-0 top-0 h-full"
+               style={{ width: '40px', clipPath: 'polygon(0% 0%, 0% 100%, 100% 50%)', backgroundColor: '#e0e7ff' }} />
+        </div>
       </div>
     </div>
   );
@@ -386,10 +390,11 @@ const App = () => {
                         <MoreVertical size={14} />
                       </button>
                       <p className="text-xs font-semibold line-clamp-3 h-12 leading-snug pr-4 text-gray-800">{task.description}</p>
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="text-[9px] text-gray-400 font-mono">
-                          {new Date(task.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                      <div className="mt-2 flex items-end justify-between">
+                        <div className="text-[9px] text-gray-400 font-mono leading-tight">
+                          <div>{new Date(task.start).toLocaleDateString([], { month: 'short', day: 'numeric' })}</div>
+                          <div>{new Date(task.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
                         <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${isUrgent ? 'bg-rose-200/60 text-rose-600' : 'bg-white/50 text-gray-500'}`}>
                           {isUrgent ? 'URGENT' : 'REGULAR'}
                         </span>
@@ -431,10 +436,11 @@ const App = () => {
               </button>
 
               <p className="text-xs font-semibold line-clamp-2 leading-snug pr-4 text-gray-800">{t.description}</p>
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-[9px] text-gray-400 font-mono">
-                  {new Date(t.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+              <div className="flex justify-between items-end mt-2">
+                <div className="text-[9px] text-gray-400 font-mono leading-tight">
+                  <div>{new Date(t.start).toLocaleDateString([], { month: 'short', day: 'numeric' })}</div>
+                  <div>{new Date(t.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
                 <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${t.priority === 0 ? 'bg-rose-200/60 text-rose-600' : 'bg-white/50 text-gray-500'}`}>
                   {t.priority === 0 ? 'URGENT' : 'REGULAR'}
                 </span>
