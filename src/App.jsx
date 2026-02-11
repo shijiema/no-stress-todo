@@ -206,6 +206,10 @@ const App = () => {
     setActiveTaskMenu({ id: taskId, x: rect.right, y: rect.bottom + 4 });
   };
 
+  const doubleClickHandler = (taskId) => ({
+    onDoubleClick: (e) => { e.stopPropagation(); openTaskMenu(e, taskId); },
+  });
+
   const TaskContextMenu = () => {
     const menuRef = useRef(null);
     const task = tasks.find(t => t.id === activeTaskMenu?.id);
@@ -425,6 +429,7 @@ const App = () => {
                     <div
                       key={task.id}
                       onClick={(e) => { e.stopPropagation(); setSelectedTask(selectedTask === task.id ? null : task.id); }}
+                      {...doubleClickHandler(task.id)}
                       style={{ direction: 'ltr', opacity: selectedTask === task.id ? 1 : depth, transform: `rotate(${postItRotation(task.id)}deg)` }}
                       className={`flex-shrink-0 w-[140px] p-3 rounded-sm border-l-4 shadow-md relative cursor-pointer transition-all ${postItColors(task.status)} ${selectedTask === task.id ? 'ring-2 ring-indigo-400 ring-offset-1 scale-105' : ''}`}
                     >
@@ -451,9 +456,9 @@ const App = () => {
             </div>
           </div>
 
-          <Section label={t('startDelayed')} tasks={delayed} color="text-rose-500" bgColor="bg-rose-50" />
-          <Section label={t('startInOneDay')} tasks={inOneDay} color="text-blue-500" bgColor="bg-blue-50" />
-          <Section label={t('startAfterADay')} tasks={afterADay} color="text-purple-500" bgColor="bg-purple-50" />
+          {Section({ label: t('startDelayed'), tasks: delayed, color: "text-rose-500", bgColor: "bg-rose-50" })}
+          {Section({ label: t('startInADay'), tasks: inOneDay, color: "text-blue-500", bgColor: "bg-blue-50" })}
+          {Section({ label: t('startAfterADay'), tasks: afterADay, color: "text-purple-500", bgColor: "bg-purple-50" })}
         </div>
       </div>
     );
@@ -470,6 +475,7 @@ const App = () => {
             <div
               key={tk.id}
               onClick={(e) => { e.stopPropagation(); setSelectedTask(selectedTask === tk.id ? null : tk.id); }}
+              {...doubleClickHandler(tk.id)}
               style={{ direction: 'ltr', transform: `rotate(${postItRotation(tk.id)}deg)` }}
               className={`flex-shrink-0 min-w-[140px] max-w-[180px] p-3 rounded-sm border-l-4 shadow-md relative cursor-pointer transition-all ${postItColors(tk.status)} ${selectedTask === tk.id ? 'ring-2 ring-indigo-400 ring-offset-1 scale-105' : ''}`}
             >
@@ -819,7 +825,7 @@ const App = () => {
       <SideMenu />
       <TaskContextMenu />
       <div className="flex-1 overflow-hidden">
-        {currentScreen === 'home' && <HomeScreen />}
+        {currentScreen === 'home' && HomeScreen()}
         {(currentScreen === 'create' || currentScreen === 'edit') && <TaskFormScreen />}
         {currentScreen === 'calendar' && <CalendarScreen />}
       </div>

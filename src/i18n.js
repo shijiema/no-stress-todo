@@ -19,7 +19,7 @@ const translations = {
     urgent: 'URGENT',
     regular: 'REGULAR',
     startDelayed: 'Start Delayed',
-    startInOneDay: 'Start In One Day',
+    startInADay: 'Start In A Day',
     startAfterADay: 'Start After A Day',
     noTasks: 'No tasks',
 
@@ -84,7 +84,7 @@ const translations = {
     urgent: '紧急',
     regular: '常规',
     startDelayed: '延迟开始',
-    startInOneDay: '一天内开始',
+    startInADay: '一天内开始',
     startAfterADay: '一天后开始',
     noTasks: '暂无任务',
 
